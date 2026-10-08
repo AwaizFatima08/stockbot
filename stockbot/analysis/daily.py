@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from datetime import date
 
-from stockbot import holdings as hold
+from stockbot import corporate, holdings as hold
 from stockbot import indicators as ind
 from stockbot.analysis import baserates, patterns as pat, setups as su
 from stockbot.config import Settings, Stock
@@ -50,6 +50,7 @@ class SymbolSnapshot:
     patterns: list[dict] = field(default_factory=list)   # {name,label,bias,text}
     setups: list[str] = field(default_factory=list)      # setup keys fired today
     base_rates: list[dict] = field(default_factory=list) # {setup,label,bias,symbol:[text...],universe:[text...]}
+    corporate_lines: list[str] = field(default_factory=list)  # payouts / book closures (facts, from corporate.py)
     sentences: list[str] = field(default_factory=list)
 
 
@@ -155,6 +156,29 @@ def _sentences(s: SymbolSnapshot, cfg: Settings) -> list[str]:
     return out
 
 
+def corporate_sentences(db: DB, symbol: str, as_of: str) -> list[str]:
+    """Declared payouts and book closures as plain facts (source: ksestocks mirror of PSX notices)."""
+    try:
+        f = corporate.payout_facts(db, symbol, as_of)
+    except Exception:  # noqa: BLE001 - never block the note on this extra
+        return []
+    out = []
+    for u in f.get("upcoming", [])[:1]:
+        what = []
+        if u["dividend_per_share"] is not None:
+            what.append(f"cash dividend Rs {u['dividend_per_share']:.2f} per share ({u['dividend_pct']:g}% of face value)")
+        if u["bonus_pct"]:
+            what.append(f"bonus shares {u['bonus_pct']:g}%")
+        if u["right_pct"]:
+            what.append(f"right shares {u['right_pct']:g}%")
+        if what:
+            out.append(f"Declared: {', '.join(what)}; book closure {u['bc_from']} to {u['bc_to'] or '?'}. The share goes ex on the first book-closure date.")
+    ld = f.get("last_dividend")
+    if ld and not f.get("upcoming"):
+        out.append(f"Last declared dividend: Rs {ld['dividend_per_share']:.2f} per share ({ld['dividend_pct']:g}% of face value), book closure {ld['bc_from']} to {ld['bc_to'] or '?'}.")
+    return out
+
+
 def analyse_symbol(db: DB, stock: Stock, as_of: str, cfg: Settings, universe: dict | None = None) -> SymbolSnapshot:
     s = SymbolSnapshot(symbol=stock.symbol, name=stock.name, sector=stock.sector)
     hist = db.history(stock.symbol, as_of, cfg.history_days)
@@ -207,6 +231,7 @@ def analyse_symbol(db: DB, stock: Stock, as_of: str, cfg: Settings, universe: di
                 "symbol": [b.text() for b in sym_stats[k]],
                 "universe": [baserates.BaseRate(**u).text() for u in uni],
             })
+    s.corporate_lines = corporate_sentences(db, stock.symbol, as_of)
     if s.close <= 0:
         s.problems.append("close price is zero")
     if s.sma_long is None:

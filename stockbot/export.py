@@ -96,6 +96,8 @@ def build(db: DB, cfg: Settings, as_of: date, analysis: daily_analysis.DailyAnal
             "volume_ratio": s.volume_ratio, "rsi": s.rsi, "trend": s.trend, "ret_1w": s.ret_1w, "ret_1m": s.ret_1m, "ret_3m": s.ret_3m,
             "off_high_pct": s.off_high_pct, "setups": [b["label"] for b in s.base_rates], "patterns": [p["label"] for p in s.patterns],
             "problems": s.problems, "agm_date": comp.get("agm_date") if comp else None, "last_ex_dividend": corp.get("last_ex_dividend"),
+            "declared_dividend_ps": (corp["upcoming"][0]["dividend_per_share"] if corp.get("upcoming") else (corp["last_dividend"]["dividend_per_share"] if corp.get("last_dividend") else None)),
+            "next_book_closure": corp["upcoming"][0]["bc_from"] if corp.get("upcoming") else None,
         })
     outs = scoring.outcomes(db, iso)
     _dump(out / "summary.json", {

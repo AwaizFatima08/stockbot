@@ -214,6 +214,14 @@ class _HistRow extends StatelessWidget {
   }
 }
 
+String _payoutLabel(Map<String, dynamic> u) {
+  final parts = <String>[];
+  if (u['dividend_per_share'] != null) parts.add('Rs ${fmtNum(u['dividend_per_share'])} per share cash (${fmtNum(u['dividend_pct'], d: 0)}% of face value)');
+  if (u['bonus_pct'] != null) parts.add('bonus ${fmtNum(u['bonus_pct'], d: 0)}%');
+  if (u['right_pct'] != null) parts.add('right ${fmtNum(u['right_pct'], d: 1)}%');
+  return parts.isEmpty ? (u['payout_text']?.toString() ?? 'Nil') : parts.join(', ');
+}
+
 class _CorporateTab extends StatelessWidget {
   final Map<String, dynamic> d;
   const _CorporateTab(this.d);
@@ -250,7 +258,35 @@ class _CorporateTab extends StatelessWidget {
         ]),
       ),
       Section(
-        title: 'Dividends (from ex-dividend markers in PSX daily files)',
+        title: 'Declared payouts (ksestocks mirror of PSX notices)',
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          for (final u in (c['upcoming'] as List? ?? []).cast<Map<String, dynamic>>())
+            ListTile(
+              dense: true, contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.upcoming, color: Colors.green),
+              title: Text(_payoutLabel(u), style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text('Book closure ${u['bc_from']} to ${u['bc_to'] ?? '?'} (goes ex on ${u['bc_from']})'),
+            ),
+          if (c['last_dividend'] != null)
+            ListTile(
+              dense: true, contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.payments_outlined),
+              title: Text('Last dividend: ${_payoutLabel(c['last_dividend'] as Map<String, dynamic>)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text('Book closure ${c['last_dividend']['bc_from']} to ${c['last_dividend']['bc_to'] ?? '?'}'),
+            ),
+          for (final u in (c['announced_undated'] as List? ?? []).cast<Map<String, dynamic>>())
+            ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.campaign_outlined), title: Text('Announced, dates pending: ${_payoutLabel(u)}')),
+          if ((c['upcoming'] as List? ?? []).isEmpty && c['last_dividend'] == null && (c['announced_undated'] as List? ?? []).isEmpty)
+            const Text('No payout recorded since tracking began (8 Oct 2026). History fills in as book closures are announced.', style: TextStyle(fontSize: 12)),
+          if (c['dividends_per_share_12m'] != null)
+            Padding(padding: const EdgeInsets.only(top: 4), child: Text('Dividends tracked in the last 12 months: Rs ${fmtNum(c['dividends_per_share_12m'])} per share (${c['n_dividends_12m_tracked']} payouts, since tracking began)', style: const TextStyle(fontSize: 12))),
+          if ((c['payout_history'] as List? ?? []).length > 1)
+            Padding(padding: const EdgeInsets.only(top: 6), child: Wrap(spacing: 6, runSpacing: 4, children: [for (final h in (c['payout_history'] as List).cast<Map<String, dynamic>>()) Chip(label: Text('${h['bc_from']}  ${h['payout_text']}', style: const TextStyle(fontSize: 11)), visualDensity: VisualDensity.compact)])),
+          Padding(padding: const EdgeInsets.only(top: 4), child: Text(c['payout_source'] ?? '', style: Theme.of(context).textTheme.bodySmall)),
+        ]),
+      ),
+      Section(
+        title: 'Ex-dividend record (XD markers in PSX daily files since 2020)',
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           KV([
             MapEntry('Last ex-dividend date', c['last_ex_dividend']?.toString() ?? 'none since 2020'),
@@ -259,8 +295,6 @@ class _CorporateTab extends StatelessWidget {
             MapEntry('Last ex-bonus', c['last_ex_bonus']?.toString() ?? '-'),
             MapEntry('Last ex-right', c['last_ex_right']?.toString() ?? '-'),
           ]),
-          const SizedBox(height: 6),
-          const Text('Dividend amounts are not in the PSX feed this app uses. Open the result announcement below for the declared amount.', style: TextStyle(fontSize: 12)),
           if (exDates.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Wrap(spacing: 6, runSpacing: 4, children: [for (final e in exDates) Chip(label: Text('${e['date']} ${(e['kinds'] as List).join('/')}', style: const TextStyle(fontSize: 11)), visualDensity: VisualDensity.compact)])),
         ]),
       ),

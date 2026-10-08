@@ -16,6 +16,7 @@ The YouTube Analyst Digest (design section 4.6) is out of scope for V1.
 | Storage | SQLite `data/stockbot.db` (whole market, ~500 equities/day) + raw ZIPs in `data/raw/` + fetch log |
 | Indicators | SMA20, SMA50, RSI14, volume vs 20-day average, 1w/1m/3m returns, 52-week range |
 | Company data | PSX company page per watchlist stock, daily: P/E, market cap, free float, 4y sales/profit/EPS, quarterly EPS, ratios, announcements; AGM date parsed from the notice PDF; ex-dividend dates from XD markers in the daily files (`sources/psx_company.py`, `sources/psx_agm.py`, `corporate.py`) |
+| Payouts | ksestocks.com Book Closures page, once a day: declared cash dividend (pct of face value -> Rs per share), bonus and right percentages, book-closure dates; accumulated in the `payouts` table from 8 Oct 2026 (`sources/ksestocks.py`). PSX notices remain the authority |
 | Long term / next week | multi-year CAGR, volatility, drawdown, positive-window share, EPS growth (`analysis/longterm.py`); weekly-move distribution + conditional levels + base rates (`analysis/outlook.py`). Statistics, never forecasts |
 | Candlestick patterns | Pure OHLC rules: doji, hammer, shooting star, bullish/bearish engulfing, gaps, strong candles (`analysis/patterns.py`) |
 | Setups + base rates | 14 transparent setups (`analysis/setups.py`); for each one that fires, what happened 5/10/20 sessions after past occurrences, per stock and across the 100 most-traded equities. Windows broken by a >30% day move (corporate action / bad data) or a hole in history are discarded |

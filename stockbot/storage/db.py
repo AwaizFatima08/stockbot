@@ -28,6 +28,23 @@ CREATE TABLE IF NOT EXISTS company (
     PRIMARY KEY (symbol, as_of)
 );
 
+CREATE TABLE IF NOT EXISTS payouts (
+    symbol             TEXT NOT NULL,
+    bc_from            TEXT,            -- '' when not announced
+    payout_text        TEXT NOT NULL,
+    bc_to              TEXT,
+    face_value         REAL,
+    dividend_pct       REAL,
+    dividend_per_share REAL,
+    bonus_pct          REAL,
+    right_pct          REAL,
+    company            TEXT,
+    source             TEXT,
+    first_seen         TEXT NOT NULL,
+    last_seen          TEXT NOT NULL,
+    PRIMARY KEY (symbol, bc_from, payout_text)
+);
+
 CREATE TABLE IF NOT EXISTS fetch_log (
     date       TEXT PRIMARY KEY,
     status     TEXT NOT NULL,   -- 'ok' | 'holiday' | 'error'
@@ -98,6 +115,21 @@ class DB:
         q = "SELECT json FROM company WHERE symbol=?" + (" AND as_of<=?" if up_to else "") + " ORDER BY as_of DESC LIMIT 1"
         r = self.conn.execute(q, (symbol.upper(), up_to) if up_to else (symbol.upper(),)).fetchone()
         return json.loads(r["json"]) if r else None
+
+    def upsert_payouts(self, payouts, seen: str, source: str) -> int:
+        rows = [(p.symbol, p.bc_from or "", p.payout_text, p.bc_to, p.face_value, p.dividend_pct, p.dividend_per_share,
+                 p.bonus_pct, p.right_pct, p.company, source, seen, seen) for p in payouts]
+        with self.conn:
+            self.conn.executemany(
+                "INSERT INTO payouts VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(symbol, bc_from, payout_text) DO UPDATE SET bc_to=excluded.bc_to, last_seen=excluded.last_seen",
+                rows)
+        return len(rows)
+
+    def payouts(self, symbol: str) -> list[sqlite3.Row]:
+        return self.conn.execute(
+            "SELECT * FROM payouts WHERE symbol=? ORDER BY CASE WHEN bc_from='' THEN 1 ELSE 0 END, bc_from DESC",
+            (symbol.upper(),)).fetchall()
 
     def counts(self) -> dict:
         r = self.conn.execute("SELECT COUNT(*) AS rows, COUNT(DISTINCT date) AS days, MIN(date) AS first, MAX(date) AS last FROM eod").fetchone()

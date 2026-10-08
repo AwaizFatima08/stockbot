@@ -15,9 +15,10 @@ checked before automation (design doc section 7).
 | PSX portal JSON/AJAX endpoints (`/timeseries/...`, `/historical`, `/company/payouts`, `/calendar`) | intraday & historical series, dividend/payout history, AGM calendar | **blocked** (403/404) outside the portal's own browser session | not usable |
 | PSX Data Services (licensed vending) | real-time and full historical feeds under licence | paid licence from PSX | the official route if terms become a problem |
 
-## Dividends and payouts (amounts) - the main gap today
+## Dividends and payouts (amounts)
 
-The PSX feed we use gives ex-dividend *dates* but not amounts. Candidates:
+Filled on 8 Oct 2026 by the ksestocks Book Closures page (see review below). The PSX daily file still
+supplies the historical ex-dividend dates. Other candidates, kept for reference:
 
 | Source | Notes |
 |---|---|
@@ -32,7 +33,7 @@ The PSX feed we use gives ex-dividend *dates* but not amounts. Candidates:
 
 | Site | Verdict | What was found |
 |---|---|---|
-| **ksestocks.com** | **Usable, recommended for dividend amounts and book closures** | `BookClosures` page embeds a JSON list (symbol, face value, book-closure from/to, payout as "Dividend=60%", "Bonus=20%", "Right=..%", last close) for current and recent closures, so the last declared dividend per share = pct x face value / 100. Also announcements, dividend schedule, daily quotation files back to 2015, historic highs/lows. `robots.txt` allows everything; the disclaimer has no restriction on copying or automated use and warns only that accuracy is not guaranteed. Data source is not stated (mirrors PSX notices). One plain GET per day is enough. |
+| **ksestocks.com** | **In use since 8 Oct 2026** for declared dividends, bonus/right percentages and book-closure dates (`sources/ksestocks.py`, `payouts` table) | `BookClosures` page embeds a JSON list (symbol, face value, book-closure from/to, payout as "Dividend=60%", "Bonus=20%", "Right=..%", last close) for current and recent closures, so the last declared dividend per share = pct x face value / 100. Also announcements, dividend schedule, daily quotation files back to 2015, historic highs/lows. `robots.txt` allows everything; the disclaimer has no restriction on copying or automated use and warns only that accuracy is not guaranteed. Data source is not stated (mirrors PSX notices). One plain GET per day is enough. |
 | **scstrade.com** (Standard Capital Securities) | Usable as a cross-check, second choice | Company snapshot pages (P/E, EPS, book value, ROE etc.), historical prices (ASP.NET form with VIEWSTATE, needs a POST per query), payout guides, a 5-page "PSX Company Dividend Schedule" PDF of credited dividends, top dividend-yield lists. No robots.txt, no usage terms beyond a privacy policy and "all rights reserved"; the "Online Trading Terms" cover the brokerage service, not the data pages. Nothing here that PSX + ksestocks do not already give, and it is a brokerage site, so keep it as a cross-check only. |
 | **akdtrade.com** (AKD Trade) | Not a data source | It is the AKD brokerage's trading platform (login only). From the NAS the HTTPS handshake does not complete. AKD publishes no public data API; the design doc's open question "ask AKD for a feed" still stands. |
 | **investing.com** | Not usable | Blocks non-browser clients outright (HTTP 403 even for `robots.txt`); its terms (which could not be fetched from here for the same reason) are known to prohibit automated access and redistribution; PSX coverage of small caps is delayed and partial. Would need a browser-automation workaround that their terms forbid. Skip. |

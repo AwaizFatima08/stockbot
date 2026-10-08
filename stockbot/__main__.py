@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from stockbot import config, export, scoring, server
 from stockbot.ai import gemini
 from stockbot.analysis import daily as daily_analysis, setups as su
-from stockbot.fetch import backfill, fetch_day, latest_trading_day, update_companies
+from stockbot.fetch import backfill, fetch_day, latest_trading_day, update_companies, update_payouts
 from stockbot.reports import charts, daily_note, email as email_report, pdf as pdf_report
 from stockbot.storage.db import DB
 
@@ -48,6 +48,7 @@ def cmd_fetch(args, cfg, db):
     if status in ("ok", "cached") and not args.no_company:
         res = update_companies(db, cfg, d)
         print("company pages:", ", ".join(f"{k}={v}" for k, v in res.items()))
+        print("payouts (ksestocks):", update_payouts(db, cfg, d))
     return 0 if status in ("ok", "cached", "holiday", "weekend") else 1
 
 
@@ -117,6 +118,7 @@ def cmd_run(args, cfg, db):
     print(f"fetch {d}: {status}")
     if status in ("ok", "cached"):
         update_companies(db, cfg, d)
+        print("payouts (ksestocks):", update_payouts(db, cfg, d))
     if status == "holiday":
         print("no trading file for today (holiday or not yet published); no note written")
         return 0

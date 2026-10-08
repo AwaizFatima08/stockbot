@@ -6,7 +6,7 @@ import time
 from datetime import date, timedelta
 
 from stockbot.config import Settings
-from stockbot.sources import psx_agm, psx_company, psx_daily
+from stockbot.sources import ksestocks, psx_agm, psx_company, psx_daily
 from stockbot.storage.db import DB
 
 log = logging.getLogger(__name__)
@@ -80,3 +80,15 @@ def update_companies(db: DB, cfg: Settings, as_of: date, symbols: list[str] | No
             results[sym] = f"error: {e}"
         time.sleep(cfg.backfill_delay_seconds)
     return results
+
+
+def update_payouts(db: DB, cfg: Settings, as_of: date) -> str:
+    """Fetch the ksestocks Book Closures page once per day and merge into the payouts table."""
+    try:
+        path = ksestocks.fetch(cfg.data_dir / "raw" / "ksestocks", cfg.user_agent, as_of)
+        rows = ksestocks.parse(path)
+        n = db.upsert_payouts(rows, as_of.isoformat(), ksestocks.SOURCE)
+        return f"ok ({n} rows)"
+    except Exception as e:  # noqa: BLE001
+        log.warning("payouts: %s", e)
+        return f"error: {e}"

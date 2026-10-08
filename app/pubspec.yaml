@@ -1,7 +1,7 @@
 name: stock_guru
 description: Stock Guru - personal PSX research companion (analysis only, never advice).
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.6.0

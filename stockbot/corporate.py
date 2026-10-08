@@ -26,6 +26,29 @@ def ex_events(db: DB, symbol: str) -> list[dict]:
     return events
 
 
+def payout_facts(db: DB, symbol: str, as_of: str) -> dict:
+    """Declared payouts from the payouts table (ksestocks mirror of PSX notices)."""
+    rows = [dict(r) for r in db.payouts(symbol)]
+    dated = [r for r in rows if r["bc_from"]]
+    past = [r for r in dated if r["bc_from"] <= as_of]
+    upcoming = [r for r in dated if r["bc_from"] > as_of]
+    undated = [r for r in rows if not r["bc_from"]]
+    last_div = next((r for r in past if r["dividend_per_share"]), None)
+    year_ago = f"{int(as_of[:4]) - 1}{as_of[4:]}"
+    divs_12m = [r["dividend_per_share"] for r in past if r["dividend_per_share"] and r["bc_from"] > year_ago]
+    def slim(r):
+        return {k: r[k] for k in ("bc_from", "bc_to", "payout_text", "dividend_pct", "dividend_per_share", "bonus_pct", "right_pct", "face_value")}
+    return {
+        "last_dividend": slim(last_div) if last_div else None,
+        "upcoming": [slim(r) for r in sorted(upcoming, key=lambda r: r["bc_from"])][:3],
+        "announced_undated": [slim(r) for r in undated][:3],
+        "dividends_per_share_12m": sum(divs_12m) if divs_12m else None,
+        "n_dividends_12m_tracked": len(divs_12m),
+        "payout_history": [slim(r) for r in past][:12],
+        "payout_source": "ksestocks.com (mirror of PSX notices); tracked since 2026-10-08",
+    }
+
+
 def summary(db: DB, symbol: str, as_of: str) -> dict:
     ev = [e for e in ex_events(db, symbol) if e["date"] <= as_of]
     divs = [e for e in ev if "XD" in e["kinds"]]
@@ -40,4 +63,5 @@ def summary(db: DB, symbol: str, as_of: str) -> dict:
         "last_ex_bonus": bonus[-1]["date"] if bonus else None,
         "last_ex_right": rights[-1]["date"] if rights else None,
         "ex_dates": [e for e in ev][-12:],
+        **payout_facts(db, symbol, as_of),
     }
