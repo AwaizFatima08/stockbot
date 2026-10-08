@@ -1,0 +1,22 @@
+# Stock Guru settings. Secrets never go here (see README: secrets.env / env vars).
+
+[general]
+timezone = "Asia/Karachi"
+data_dir = "data"          # relative to project root
+reports_dir = "reports"
+
+[fetch]
+# Seconds to wait between downloads during backfill (be polite to the PSX portal).
+backfill_delay_seconds = 1.5
+user_agent = "Mozilla/5.0 (X11; Linux x86_64) StockGuru/0.1 personal-research"
+
+[analysis]
+sma_short = 20
+sma_long = 50
+rsi_period = 14
+volume_avg_period = 20
+history_days = 400         # trading days loaded per symbol for indicators
+
+[ai]
+enabled = true             # ignored if GEMINI_API_KEY is not set
+model = "gemini-2.5-flash"

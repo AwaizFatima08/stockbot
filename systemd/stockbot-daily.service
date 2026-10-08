@@ -1,0 +1,11 @@
+[Unit]
+Description=Stock Guru daily fetch + note (PSX end-of-day)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=humayun
+WorkingDirectory=/mnt/storage/projects/stockbot
+ExecStart=/mnt/storage/projects/stockbot/scripts/run-daily.sh
+ExecStartPost=/mnt/storage/projects/stockbot/scripts/backup.sh

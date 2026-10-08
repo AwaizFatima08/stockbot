@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Stock Guru daily after PSX close (Mon-Fri 18:30 PKT)
+
+[Timer]
+OnCalendar=Mon..Fri 18:30 Asia/Karachi
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

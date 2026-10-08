@@ -1,0 +1,54 @@
+# PLACEHOLDER watchlist - Homi has not yet provided the 10-stock trial list
+# (design doc section 9, item 3). Replace these before the 3-month trial starts.
+# FATIMA (Fatima Fertilizer) and related stocks stay OFF the list until the
+# employer insider-trading policy is checked (design doc section 7).
+
+[[stocks]]
+symbol = "OGDC"
+name = "Oil & Gas Development Co"
+sector = "Oil & gas exploration"
+
+[[stocks]]
+symbol = "PPL"
+name = "Pakistan Petroleum"
+sector = "Oil & gas exploration"
+
+[[stocks]]
+symbol = "PSO"
+name = "Pakistan State Oil"
+sector = "Oil marketing"
+
+[[stocks]]
+symbol = "LUCK"
+name = "Lucky Cement"
+sector = "Cement"
+
+[[stocks]]
+symbol = "ENGROH"
+name = "Engro Holdings"
+sector = "Conglomerate / fertilizer"
+
+[[stocks]]
+symbol = "HBL"
+name = "Habib Bank"
+sector = "Banking"
+
+[[stocks]]
+symbol = "MCB"
+name = "MCB Bank"
+sector = "Banking"
+
+[[stocks]]
+symbol = "HUBC"
+name = "Hub Power"
+sector = "Power"
+
+[[stocks]]
+symbol = "SYS"
+name = "Systems Ltd"
+sector = "Technology"
+
+[[stocks]]
+symbol = "FFC"
+name = "Fauji Fertilizer"
+sector = "Fertilizer"

@@ -1,0 +1,63 @@
+"""Fetch orchestration: one day, or a range (backfill)."""
+from __future__ import annotations
+
+import logging
+import time
+from datetime import date, timedelta
+
+from stockbot.config import Settings
+from stockbot.sources import psx_daily
+from stockbot.storage.db import DB
+
+log = logging.getLogger(__name__)
+
+
+def fetch_day(db: DB, cfg: Settings, d: date, force: bool = False) -> str:
+    """Returns 'ok' | 'holiday' | 'cached' | 'error'. Logs every outcome."""
+    iso = d.isoformat()
+    if d.weekday() >= 5:
+        return "weekend"
+    prior = db.fetch_status(iso)
+    if prior in ("ok", "holiday") and not force:
+        return "cached"
+    try:
+        path = psx_daily.download(d, cfg.raw_dir, cfg.user_agent)
+        if path is None:
+            db.log_fetch(iso, "holiday", 0, "portal returned 404 (no file for this date)")
+            return "holiday"
+        rows = psx_daily.parse(path, expected_date=d)
+        warns = psx_daily.sanity_warnings(rows)
+        n = db.upsert_eod(rows)
+        msg = f"{n} rows" + (f"; {len(warns)} warnings: " + " | ".join(warns[:5]) if warns else "")
+        db.log_fetch(iso, "ok", n, msg)
+        if warns:
+            log.warning("%s: %s", iso, msg)
+        return "ok"
+    except (psx_daily.FetchError, psx_daily.ParseError) as e:
+        db.log_fetch(iso, "error", 0, str(e))
+        log.error("%s: %s", iso, e)
+        # a bad download must not be re-used
+        p = psx_daily.raw_path(cfg.raw_dir, d)
+        if p.exists() and isinstance(e, psx_daily.ParseError):
+            p.rename(p.with_suffix(".bad"))
+        return "error"
+
+
+def backfill(db: DB, cfg: Settings, start: date, end: date) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    d = start
+    while d <= end:
+        status = fetch_day(db, cfg, d)
+        counts[status] = counts.get(status, 0) + 1
+        if status in ("ok", "holiday", "error"):
+            time.sleep(cfg.backfill_delay_seconds)
+        d += timedelta(days=1)
+    return counts
+
+
+def latest_trading_day(today: date) -> date:
+    """Most recent weekday on or before today (holidays resolved by fetch)."""
+    d = today
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+    return d

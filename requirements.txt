@@ -1,0 +1,3 @@
+# Core has no third-party dependencies (stdlib only).
+# Optional AI narrative (Google Gemini):
+google-genai>=1.0
