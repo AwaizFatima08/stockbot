@@ -72,6 +72,6 @@ information in the past. Small samples (under ~20) are shown but mean little. Th
 
 ## Watchlist
 
-`config/watchlist.toml` currently holds a **placeholder** list of 10 liquid names across
-sectors. Homi's own 10-stock trial list replaces it before the 3-month paper-trading period
-starts. FATIMA stays off the list until the employer insider-trading policy is checked.
+`config/watchlist.toml` holds Homi's 10-stock trial list (8 Oct 2026): OCTOPUS, AVN, TREET, FCL,
+WAVESAPP, WAVES, FATIMA, FFC, CNERGY, HUBC. FATIMA is on the list at Homi's request; the design doc's
+insider-trading-policy note (section 7) still applies.

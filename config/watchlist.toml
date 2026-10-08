@@ -1,54 +1,53 @@
-# PLACEHOLDER watchlist - Homi has not yet provided the 10-stock trial list
-# (design doc section 9, item 3). Replace these before the 3-month trial starts.
-# FATIMA (Fatima Fertilizer) and related stocks stay OFF the list until the
-# employer insider-trading policy is checked (design doc section 7).
+# Homi's 10-stock trial watchlist (provided 8 Oct 2026). Used for the ~3-month
+# parallel run (design doc 4.5). FATIMA is included at Homi's request; the design
+# doc (section 7) notes the employer insider-trading policy should be checked.
 
 [[stocks]]
-symbol = "OGDC"
-name = "Oil & Gas Development Co"
-sector = "Oil & gas exploration"
-
-[[stocks]]
-symbol = "PPL"
-name = "Pakistan Petroleum"
-sector = "Oil & gas exploration"
-
-[[stocks]]
-symbol = "PSO"
-name = "Pakistan State Oil"
-sector = "Oil marketing"
-
-[[stocks]]
-symbol = "LUCK"
-name = "Lucky Cement"
-sector = "Cement"
-
-[[stocks]]
-symbol = "ENGROH"
-name = "Engro Holdings"
-sector = "Conglomerate / fertilizer"
-
-[[stocks]]
-symbol = "HBL"
-name = "Habib Bank"
-sector = "Banking"
-
-[[stocks]]
-symbol = "MCB"
-name = "MCB Bank"
-sector = "Banking"
-
-[[stocks]]
-symbol = "HUBC"
-name = "Hub Power"
-sector = "Power"
-
-[[stocks]]
-symbol = "SYS"
-name = "Systems Ltd"
+symbol = "OCTOPUS"
+name = "Octopus Digital"
 sector = "Technology"
+
+[[stocks]]
+symbol = "AVN"
+name = "Avanceon"
+sector = "Technology / automation"
+
+[[stocks]]
+symbol = "TREET"
+name = "Treet Corporation"
+sector = "Consumer goods"
+
+[[stocks]]
+symbol = "FCL"
+name = "Fast Cables"
+sector = "Cables / electrical goods"
+
+[[stocks]]
+symbol = "WAVESAPP"
+name = "Waves Home Appliances"
+sector = "Home appliances"
+
+[[stocks]]
+symbol = "WAVES"
+name = "Waves Corporation"
+sector = "Home appliances / holding"
+
+[[stocks]]
+symbol = "FATIMA"
+name = "Fatima Fertilizer"
+sector = "Fertilizer"
 
 [[stocks]]
 symbol = "FFC"
 name = "Fauji Fertilizer"
 sector = "Fertilizer"
+
+[[stocks]]
+symbol = "CNERGY"
+name = "Cnergyico PK"
+sector = "Refinery"
+
+[[stocks]]
+symbol = "HUBC"
+name = "Hub Power"
+sector = "Power"
