@@ -64,3 +64,39 @@ def average(values: list[float], n: int) -> float | None:
     if n <= 0 or len(values) < n:
         return None
     return sum(values[-n:]) / n
+
+
+def rsi_series(closes: list[float], period: int = 14) -> list[float | None]:
+    """Wilder's RSI for every index (None until period+1 closes exist)."""
+    out: list[float | None] = [None] * len(closes)
+    if period <= 0 or len(closes) < period + 1:
+        return out
+    avg_gain = avg_loss = 0.0
+    for i in range(1, len(closes)):
+        ch = closes[i] - closes[i - 1]
+        g, l = max(ch, 0.0), max(-ch, 0.0)
+        if i <= period:
+            avg_gain += g / period
+            avg_loss += l / period
+            if i == period:
+                out[i] = 100.0 if avg_loss == 0 else 100.0 - 100.0 / (1.0 + avg_gain / avg_loss)
+        else:
+            avg_gain = (avg_gain * (period - 1) + g) / period
+            avg_loss = (avg_loss * (period - 1) + l) / period
+            out[i] = 100.0 if avg_loss == 0 else 100.0 - 100.0 / (1.0 + avg_gain / avg_loss)
+    return out
+
+
+def rolling_max(values: list[float], n: int) -> list[float | None]:
+    """Max of the n values ending at each index (inclusive); None until n values exist."""
+    out: list[float | None] = []
+    for i in range(len(values)):
+        out.append(max(values[i - n + 1 : i + 1]) if i >= n - 1 else None)
+    return out
+
+
+def rolling_min(values: list[float], n: int) -> list[float | None]:
+    out: list[float | None] = []
+    for i in range(len(values)):
+        out.append(min(values[i - n + 1 : i + 1]) if i >= n - 1 else None)
+    return out

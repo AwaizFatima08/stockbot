@@ -34,7 +34,15 @@ class Settings:
     history_days: int
     ai_enabled: bool
     ai_model: str
+    universe_size: int = 100
+    charts_enabled: bool = True
+    chart_sessions: int = 120
+    email: dict = field(default_factory=dict)
     watchlist: tuple[Stock, ...] = field(default_factory=tuple)
+
+    @property
+    def baserates_dir(self) -> Path:
+        return self.data_dir / "baserates"
 
     @property
     def gemini_api_key(self) -> str | None:
@@ -90,5 +98,9 @@ def load(root: Path | None = None) -> Settings:
         history_days=int(analysis.get("history_days", 400)),
         ai_enabled=bool(ai.get("enabled", True)),
         ai_model=str(ai.get("model", "gemini-2.5-flash")),
+        universe_size=int(cfg.get("baserates", {}).get("universe_size", 100)),
+        charts_enabled=bool(cfg.get("charts", {}).get("enabled", True)),
+        chart_sessions=int(cfg.get("charts", {}).get("sessions", 120)),
+        email=dict(cfg.get("email", {})),
         watchlist=tuple(stocks),
     )

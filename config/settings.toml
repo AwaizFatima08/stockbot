@@ -20,3 +20,18 @@ history_days = 400         # trading days loaded per symbol for indicators
 [ai]
 enabled = true             # ignored if GEMINI_API_KEY is not set
 model = "gemini-2.5-flash"
+
+[baserates]
+universe_size = 100        # liquid stocks used for market-wide base rates (top by traded value)
+
+[charts]
+enabled = true
+sessions = 120
+
+[email]
+enabled = false            # set true after filling the fields below; password goes in secrets.env as SMTP_PASSWORD
+smtp_host = "smtp.gmail.com"
+smtp_port = 587
+username = ""
+from = ""
+to = ""

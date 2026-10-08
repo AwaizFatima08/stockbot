@@ -7,12 +7,34 @@ import sys
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from stockbot import config
+from stockbot import config, scoring
 from stockbot.ai import gemini
-from stockbot.analysis import daily as daily_analysis
+from stockbot.analysis import daily as daily_analysis, setups as su
 from stockbot.fetch import backfill, fetch_day, latest_trading_day
-from stockbot.reports import daily_note
+from stockbot.reports import charts, daily_note, email as email_report, pdf as pdf_report
 from stockbot.storage.db import DB
+
+
+def _charts(db, cfg, analysis) -> dict:
+    out = {}
+    if not cfg.charts_enabled:
+        return out
+    for s in analysis.snapshots:
+        if not s.ok:
+            continue
+        hist = db.history(s.symbol, analysis.as_of, cfg.history_days)
+        series = su.build_series(hist, cfg.sma_short, cfg.sma_long, cfg.rsi_period, cfg.volume_avg_period)
+        hits = [__import__("stockbot.analysis.patterns", fromlist=["PatternHit"]).PatternHit(**p) for p in s.patterns]
+        levels = {k: v for k, v in {"20d high": max(series.highs[-20:]), "20d low": min(x for x in series.lows[-20:] if x > 0),
+                                    "52w high": s.high_52w, "52w low": s.low_52w}.items() if v}
+        caption = s.sentences[2] if len(s.sentences) > 2 else (s.sentences[0] if s.sentences else "")
+        path = cfg.reports_dir / "charts" / analysis.as_of / f"{s.symbol}.png"
+        try:
+            out[s.symbol] = charts.draw(series, s.symbol, s.name, path, cfg.chart_sessions, hits, levels, caption,
+                                        (f"SMA{cfg.sma_short}", f"SMA{cfg.sma_long}"))
+        except Exception as e:  # noqa: BLE001
+            logging.getLogger(__name__).warning("chart %s failed: %s", s.symbol, e)
+    return out
 
 
 def _date(s: str) -> date:
@@ -40,13 +62,30 @@ def cmd_note(args, cfg, db):
         print("database empty; run fetch/backfill first", file=sys.stderr)
         return 1
     analysis = daily_analysis.build(db, cfg, d)
-    narrative, ai_status = (None, "AI narrative skipped (--no-ai)") if args.no_ai else gemini.narrate(analysis.to_dict(), cfg)
-    md, snap = daily_note.write(analysis, cfg, narrative, ai_status)
-    print(f"note: {md}\nsnapshot: {snap}\nstatus: {'OK' if analysis.data_ok else 'PROBLEMS'}; {ai_status}")
+    narrative, ai_status = (None, "AI narrative skipped (--no-ai)") if args.no_ai else gemini.narrate(analysis.ai_payload(), cfg)
+    chart_paths = _charts(db, cfg, analysis)
+    md, snap = daily_note.write(analysis, cfg, narrative, ai_status, chart_paths)
+    for s in analysis.snapshots:
+        if s.ok and s.close:
+            scoring.log_signals(db, analysis.as_of, s.symbol, s.close, s.trend, s.setups)
+    pdf_path = pdf_report.write(md.read_text(encoding="utf-8"), cfg.reports_dir / "daily" / f"{analysis.as_of}.pdf", chart_paths)
+    print(f"note: {md}\npdf: {pdf_path}\nsnapshot: {snap}\ncharts: {len(chart_paths)}\nstatus: {'OK' if analysis.data_ok else 'PROBLEMS'}; {ai_status}")
     if not analysis.data_ok:
         for p in analysis.data_problems:
             print(f"  - {p}")
+    if getattr(args, "email", False):
+        print(email_report.send(cfg.email, f"Stock Guru daily note {analysis.as_of}", md.read_text(encoding="utf-8"), [pdf_path]))
     return 0 if analysis.data_ok else 2
+
+
+def cmd_scorecard(args, cfg, db):
+    d = args.date or (date.fromisoformat(db.latest_date()) if db.latest_date() else None)
+    if d is None:
+        print("database empty", file=sys.stderr)
+        return 1
+    p = scoring.write_scorecard(db, cfg.reports_dir, d.isoformat())
+    print(f"scorecard: {p}")
+    return 0
 
 
 def cmd_run(args, cfg, db):
@@ -60,8 +99,12 @@ def cmd_run(args, cfg, db):
     if status == "error":
         print("fetch failed; no note written", file=sys.stderr)
         return 1
-    args.date, args.no_ai = d, args.no_ai
-    return cmd_note(args, cfg, db)
+    args.date, args.email = d, True
+    rc = cmd_note(args, cfg, db)
+    if d.weekday() == 4:  # Friday: weekly scorecard
+        args.date = d
+        cmd_scorecard(args, cfg, db)
+    return rc
 
 
 def cmd_status(args, cfg, db):
@@ -89,10 +132,15 @@ def main(argv=None) -> int:
     s.add_argument("--end", type=_date)
     s.set_defaults(fn=cmd_backfill)
 
-    s = sub.add_parser("note", help="write the daily note for a date already in the database")
+    s = sub.add_parser("note", help="write the daily note (md + pdf + charts) for a date already in the database")
     s.add_argument("--date", type=_date)
     s.add_argument("--no-ai", action="store_true")
+    s.add_argument("--email", action="store_true", help="also email the PDF if [email] is enabled")
     s.set_defaults(fn=cmd_note)
+
+    s = sub.add_parser("scorecard", help="how past readings fared (self-scoring log)")
+    s.add_argument("--date", type=_date)
+    s.set_defaults(fn=cmd_scorecard)
 
     s = sub.add_parser("run", help="daily job: fetch latest day + write note")
     s.add_argument("--no-ai", action="store_true")

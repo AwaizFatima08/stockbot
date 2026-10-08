@@ -8,17 +8,22 @@ targets. Design: `docs/psx_agent_design.md`.
 **V1 scope:** statistical data + analysis + feedback on that analysis.
 The YouTube Analyst Digest (design section 4.6) is out of scope for V1.
 
-## Status: Phase 1 (watchlist, daily EOD data, indicators, daily note)
+## Status: Phases 1-3 built (8 Oct 2026), paper-trading period not yet started
 
 | Piece | State |
 |---|---|
 | Data source | PSX Data Portal daily *Market Summary (Closing)* ZIP, one file per trading day, archive back to at least 2020 |
 | Storage | SQLite `data/stockbot.db` (whole market, ~500 equities/day) + raw ZIPs in `data/raw/` + fetch log |
 | Indicators | SMA20, SMA50, RSI14, volume vs 20-day average, 1w/1m/3m returns, 52-week range |
-| Daily note | Markdown in `reports/daily/YYYY-MM-DD.md`; JSON snapshot in `data/snapshots/` (feeds the Phase 3 self-scoring log) |
-| AI narrative | Optional, Gemini via `stockbot/ai/gemini.py` (the only AI touch-point); off until `GEMINI_API_KEY` is set |
-| Scheduling | systemd timer Mon-Fri 18:30 PKT (`systemd/`), not yet installed |
-| Delivery | file only for now; PDF + email come later |
+| Candlestick patterns | Pure OHLC rules: doji, hammer, shooting star, bullish/bearish engulfing, gaps, strong candles (`analysis/patterns.py`) |
+| Setups + base rates | 14 transparent setups (`analysis/setups.py`); for each one that fires, what happened 5/10/20 sessions after past occurrences, per stock and across the 100 most-traded equities. Windows broken by a >30% day move (corporate action / bad data) or a hole in history are discarded |
+| Annotated charts | 120-session candlestick PNG per stock with SMA20/50, volume, patterns and levels marked, one-line caption (`reports/charts/<date>/`) |
+| Holdings | optional `config/holdings.toml` (git-ignored); weights and P/L in the note; only symbols and percentages ever go to the AI |
+| Daily note | Markdown + PDF in `reports/daily/`; JSON snapshot in `data/snapshots/` |
+| Self-scoring log | every note logs the trend label and setups per stock (`signals` table); `scorecard` reports hit rates and median moves 5/10/20 sessions later; written automatically every Friday |
+| AI narrative | Optional, Gemini via `stockbot/ai/gemini.py` (the only AI touch-point); off until `GEMINI_API_KEY` (an AI Studio key, `AIza...`) is in `secrets.env` |
+| Scheduling | systemd timer Mon-Fri 18:30 PKT (`systemd/`), not yet installed (needs sudo) |
+| Delivery | files; email of the PDF is implemented but off until `[email]` in settings.toml and `SMTP_PASSWORD` are filled in |
 
 ## Usage
 
@@ -27,7 +32,8 @@ The YouTube Analyst Digest (design section 4.6) is out of scope for V1.
 .venv/bin/python -m stockbot backfill --start 2025-07-01     # polite: 1.5 s between files
 .venv/bin/python -m stockbot fetch                           # latest weekday
 .venv/bin/python -m stockbot note --date 2026-10-08 --no-ai  # note without the AI narrative
-.venv/bin/python -m stockbot run                             # what the timer does: fetch + note
+.venv/bin/python -m stockbot run                             # what the timer does: fetch + note (+ scorecard on Fridays)
+.venv/bin/python -m stockbot scorecard                       # how past readings fared
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
@@ -45,6 +51,12 @@ sudo systemctl daemon-reload && sudo systemctl enable --now stockbot-daily.timer
 `scripts/backup.sh` mirrors the project to `/mnt/storage/project_backups/stockbot_backup`
 and then to Google Drive (`gdrive:stockbot` via rclone). The systemd service runs it after
 every daily run.
+
+## Reading the base rates
+
+"PSO: 27 past occurrences; price was higher 5 sessions later 33% of the time (median -1.1%, worst -6.4%, best +9.8%)"
+means exactly that and nothing more. A hit rate near 50% with a median near 0% says the setup carried no
+information in the past. Small samples (under ~20) are shown but mean little. These are not forecasts.
 
 ## Data notes
 

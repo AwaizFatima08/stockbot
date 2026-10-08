@@ -1,3 +1,4 @@
-# Core has no third-party dependencies (stdlib only).
-# Optional AI narrative (Google Gemini):
-google-genai>=1.0
+# Core: stdlib only. Extras:
+google-genai>=1.0   # AI narrative
+matplotlib>=3.8     # annotated charts
+fpdf2>=2.7          # PDF notes

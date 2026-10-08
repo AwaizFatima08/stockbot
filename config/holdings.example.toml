@@ -1,0 +1,5 @@
+# Copy to holdings.toml (git-ignored). Shares and average cost in PKR.
+[[positions]]
+symbol = "OGDC"
+shares = 100
+avg_cost = 300.0
