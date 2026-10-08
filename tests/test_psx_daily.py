@@ -64,3 +64,21 @@ class ParseTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ArchiveLayoutTests(unittest.TestCase):
+    def test_zip_with_folder_entry(self):
+        tmp = Path(tempfile.mkdtemp())
+        p = tmp / "2026-10-07.Z"
+        with zipfile.ZipFile(p, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("20261007_new.lis/", "")
+            zf.writestr("20261007_new.lis/closing11.lis", SAMPLE)
+        self.assertEqual(len(psx_daily.parse(p, expected_date=date(2026, 10, 7))), 122)
+
+    def test_plain_gzip(self):
+        import gzip
+        tmp = Path(tempfile.mkdtemp())
+        p = tmp / "2026-10-07.Z"
+        with gzip.open(p, "wb") as fh:
+            fh.write(SAMPLE.encode())
+        self.assertEqual(len(psx_daily.parse(p, expected_date=date(2026, 10, 7))), 122)

@@ -17,6 +17,7 @@ personal research use is Homi's decision (design doc section 7).
 """
 from __future__ import annotations
 
+import gzip
 import io
 import logging
 import urllib.error
@@ -79,10 +80,30 @@ def download(d: date, raw_dir: Path, user_agent: str, timeout: int = 60) -> Path
     except (urllib.error.URLError, TimeoutError, OSError) as e:
         raise FetchError(f"network error for {d}: {e}") from e
 
-    if not body.startswith(b"PK"):
-        raise ParseError(f"{d}: response is not a ZIP file ({len(body)} bytes)")
+    if not (body.startswith(b"PK") or body.startswith(b"\x1f\x8b")):
+        raise ParseError(f"{d}: response is neither ZIP nor gzip ({len(body)} bytes)")
     path.write_bytes(body)
     return path
+
+
+def _read_archive(path: Path) -> str:
+    """The portal has served three layouts over the years: a ZIP with one file,
+    a ZIP with a folder containing the file (May 2023), and a plain gzip (Oct 2021)."""
+    head = path.read_bytes()[:2]
+    if head == b"\x1f\x8b":
+        try:
+            with gzip.open(path, "rb") as fh:
+                return fh.read().decode("utf-8", errors="replace")
+        except (OSError, EOFError) as e:
+            raise ParseError(f"{path.name}: bad gzip") from e
+    try:
+        with zipfile.ZipFile(path) as zf:
+            files = [n for n in zf.namelist() if not n.endswith("/")]
+            if len(files) != 1:
+                raise ParseError(f"{path.name}: expected 1 file in ZIP, got {zf.namelist()}")
+            return zf.read(files[0]).decode("utf-8", errors="replace")
+    except zipfile.BadZipFile as e:
+        raise ParseError(f"{path.name}: bad ZIP") from e
 
 
 def _num(v: str, field: str, line_no: int) -> float:
@@ -97,14 +118,7 @@ def _num(v: str, field: str, line_no: int) -> float:
 
 def parse(path: Path, expected_date: date | None = None) -> list[EodRow]:
     """Parse the ZIP at `path` into equity rows. Validates structure and date."""
-    try:
-        with zipfile.ZipFile(path) as zf:
-            names = zf.namelist()
-            if len(names) != 1:
-                raise ParseError(f"{path.name}: expected 1 file in ZIP, got {names}")
-            text = zf.read(names[0]).decode("utf-8", errors="replace")
-    except zipfile.BadZipFile as e:
-        raise ParseError(f"{path.name}: bad ZIP") from e
+    text = _read_archive(path)
 
     rows: list[EodRow] = []
     dates_seen: set[str] = set()
