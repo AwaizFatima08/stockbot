@@ -11,7 +11,7 @@ mkdir -p "$DST"
 rsync -a --delete "${EXCL[@]}" "$SRC/" "$DST/"
 echo "local backup: $DST ($(du -sh "$DST" | cut -f1))"
 if command -v rclone >/dev/null && rclone listremotes | grep -q '^gdrive:'; then
-  rclone sync "$DST" "$GDRIVE_REMOTE" --exclude '.git/**' --exclude '.venv/**' --fast-list -q
+  rclone sync "$DST" "$GDRIVE_REMOTE" --exclude '.git/**' --exclude '.venv/**' --fast-list --transfers 8 --checkers 16 -q
   echo "google drive: $GDRIVE_REMOTE synced"
 else
   echo "rclone gdrive remote not available; skipped Google Drive sync" >&2
