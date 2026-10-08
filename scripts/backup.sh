@@ -5,7 +5,7 @@ set -euo pipefail
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
 DST="/mnt/storage/project_backups/stockbot_backup"
 GDRIVE_REMOTE="gdrive:stockbot"
-EXCL=(--exclude '.venv' --exclude '__pycache__' --exclude '*.pyc' --exclude '.pytest_cache')
+EXCL=(--exclude '.venv' --exclude '__pycache__' --exclude '*.pyc' --exclude '.pytest_cache' --exclude 'app/build' --exclude 'app/.dart_tool' --exclude 'app/android/.gradle')
 
 mkdir -p "$DST"
 rsync -a --delete "${EXCL[@]}" "$SRC/" "$DST/"

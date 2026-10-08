@@ -7,3 +7,4 @@ secrets.env
 .pytest_cache/
 *.egg-info/
 config/holdings.toml
+dist/
