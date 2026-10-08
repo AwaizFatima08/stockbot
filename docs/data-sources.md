@@ -28,6 +28,18 @@ The PSX feed we use gives ex-dividend *dates* but not amounts. Candidates:
 | Investify.pk / Mettis Global (mg-link.net) | Aggregators with corporate-action data; Mettis is paid. |
 | Company investor-relations pages / annual reports | Authoritative for dividend history; one-off manual check per stock. |
 
+## Review of candidate sites (checked from the NAS on 8 Oct 2026)
+
+| Site | Verdict | What was found |
+|---|---|---|
+| **ksestocks.com** | **Usable, recommended for dividend amounts and book closures** | `BookClosures` page embeds a JSON list (symbol, face value, book-closure from/to, payout as "Dividend=60%", "Bonus=20%", "Right=..%", last close) for current and recent closures, so the last declared dividend per share = pct x face value / 100. Also announcements, dividend schedule, daily quotation files back to 2015, historic highs/lows. `robots.txt` allows everything; the disclaimer has no restriction on copying or automated use and warns only that accuracy is not guaranteed. Data source is not stated (mirrors PSX notices). One plain GET per day is enough. |
+| **scstrade.com** (Standard Capital Securities) | Usable as a cross-check, second choice | Company snapshot pages (P/E, EPS, book value, ROE etc.), historical prices (ASP.NET form with VIEWSTATE, needs a POST per query), payout guides, a 5-page "PSX Company Dividend Schedule" PDF of credited dividends, top dividend-yield lists. No robots.txt, no usage terms beyond a privacy policy and "all rights reserved"; the "Online Trading Terms" cover the brokerage service, not the data pages. Nothing here that PSX + ksestocks do not already give, and it is a brokerage site, so keep it as a cross-check only. |
+| **akdtrade.com** (AKD Trade) | Not a data source | It is the AKD brokerage's trading platform (login only). From the NAS the HTTPS handshake does not complete. AKD publishes no public data API; the design doc's open question "ask AKD for a feed" still stands. |
+| **investing.com** | Not usable | Blocks non-browser clients outright (HTTP 403 even for `robots.txt`); its terms (which could not be fetched from here for the same reason) are known to prohibit automated access and redistribution; PSX coverage of small caps is delayed and partial. Would need a browser-automation workaround that their terms forbid. Skip. |
+| "sctrade" | Assumed to be scstrade.com (above). No site of that name found. |
+
+Licensed alternatives if a formal feed is ever wanted: PSX Data Services vending (official end-of-day and historical products, paid) and CapitalStake (REST API with EOD/intraday prices, dividends, fundamentals, announcements; pricing not published).
+
 ## Macro and global factors (design 4.1-4.2; not built yet)
 
 | Source | What |
