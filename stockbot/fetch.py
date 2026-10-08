@@ -6,7 +6,7 @@ import time
 from datetime import date, timedelta
 
 from stockbot.config import Settings
-from stockbot.sources import psx_daily
+from stockbot.sources import psx_agm, psx_company, psx_daily
 from stockbot.storage.db import DB
 
 log = logging.getLogger(__name__)
@@ -61,3 +61,22 @@ def latest_trading_day(today: date) -> date:
     while d.weekday() >= 5:
         d -= timedelta(days=1)
     return d
+
+
+def update_companies(db: DB, cfg: Settings, as_of: date, symbols: list[str] | None = None) -> dict[str, str]:
+    """Fetch and store the PSX company page for each watchlist symbol (one GET each, cached per day)."""
+    results = {}
+    for sym in symbols or [s.symbol for s in cfg.watchlist]:
+        try:
+            path = psx_company.fetch(sym, cfg.data_dir / "raw" / "company", cfg.user_agent, as_of)
+            comp = psx_company.parse(path, sym, as_of)
+            payload = comp.to_dict()
+            notice = payload.get("agm_notice")
+            payload["agm_date"] = psx_agm.meeting_date(notice["pdf"], cfg.data_dir / "raw" / "agm", cfg.user_agent, notice["date"]) if notice and notice.get("pdf") else None
+            db.save_company(sym, as_of.isoformat(), payload)
+            results[sym] = "ok"
+        except Exception as e:  # noqa: BLE001 - one bad page must not stop the others
+            log.warning("company page %s: %s", sym, e)
+            results[sym] = f"error: {e}"
+        time.sleep(cfg.backfill_delay_seconds)
+    return results

@@ -2,3 +2,4 @@
 google-genai>=1.0   # AI narrative
 matplotlib>=3.8     # annotated charts
 fpdf2>=2.7          # PDF notes
+pypdf>=4.0           # AGM date from notice PDFs

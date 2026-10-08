@@ -1,0 +1,16 @@
+[Unit]
+Description=Stock Guru phone-app API (LAN, read-mostly)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=humayun
+WorkingDirectory=/mnt/storage/projects/stockbot
+EnvironmentFile=/mnt/storage/projects/stockbot/secrets.env
+ExecStart=/mnt/storage/projects/stockbot/.venv/bin/python -m stockbot serve --port 8787
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

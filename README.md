@@ -15,6 +15,8 @@ The YouTube Analyst Digest (design section 4.6) is out of scope for V1.
 | Data source | PSX Data Portal daily *Market Summary (Closing)* ZIP, one file per trading day, archive back to at least 2020 |
 | Storage | SQLite `data/stockbot.db` (whole market, ~500 equities/day) + raw ZIPs in `data/raw/` + fetch log |
 | Indicators | SMA20, SMA50, RSI14, volume vs 20-day average, 1w/1m/3m returns, 52-week range |
+| Company data | PSX company page per watchlist stock, daily: P/E, market cap, free float, 4y sales/profit/EPS, quarterly EPS, ratios, announcements; AGM date parsed from the notice PDF; ex-dividend dates from XD markers in the daily files (`sources/psx_company.py`, `sources/psx_agm.py`, `corporate.py`) |
+| Long term / next week | multi-year CAGR, volatility, drawdown, positive-window share, EPS growth (`analysis/longterm.py`); weekly-move distribution + conditional levels + base rates (`analysis/outlook.py`). Statistics, never forecasts |
 | Candlestick patterns | Pure OHLC rules: doji, hammer, shooting star, bullish/bearish engulfing, gaps, strong candles (`analysis/patterns.py`) |
 | Setups + base rates | 14 transparent setups (`analysis/setups.py`); for each one that fires, what happened 5/10/20 sessions after past occurrences, per stock and across the 100 most-traded equities. Windows broken by a >30% day move (corporate action / bad data) or a hole in history are discarded |
 | Annotated charts | 120-session candlestick PNG per stock with SMA20/50, volume, patterns and levels marked, one-line caption (`reports/charts/<date>/`) |
@@ -24,6 +26,22 @@ The YouTube Analyst Digest (design section 4.6) is out of scope for V1.
 | AI narrative | Optional, Gemini via `stockbot/ai/gemini.py` (the only AI touch-point); off until `GEMINI_API_KEY` (an AI Studio key, `AIza...`) is in `secrets.env` |
 | Scheduling | systemd timer Mon-Fri 18:30 PKT (`systemd/`), not yet installed (needs sudo) |
 | Delivery | files; email of the PDF is implemented but off until `[email]` in settings.toml and `SMTP_PASSWORD` are filled in |
+
+## Phone app (Android)
+
+`app/` is a Flutter app that reads a small LAN API on the NAS (`python -m stockbot serve`,
+systemd unit `systemd/stockbot-api.service`, port 8787, token in `secrets.env` as
+`STOCKBOT_API_TOKEN`). Screens: Today (daily performance), per-stock tabs (Today, Chart &
+trends with candlesticks, History since 2020, Corporate: AGM date / ex-dividend dates /
+results / announcements, Next week: base rates + typical weekly move + levels, Long term:
+multi-year price stats + reported EPS/sales/profit/ratios), Scorecard, Watchlist editor
+(replace any of the 10 stocks; the NAS rewrites `config/watchlist.toml` and regenerates),
+Settings (server address + token). The phone must reach the NAS (home Wi-Fi or VPN).
+
+Build: `cd app && flutter build apk --release` -> `app/build/app/outputs/flutter-apk/app-release.apk`.
+Data pipeline for the app: `python -m stockbot export` writes `data/app/` (done automatically by `run`).
+
+Data sources in use and candidates to add: `docs/data-sources.md`.
 
 ## Usage
 
@@ -44,8 +62,8 @@ Exit codes: 0 ok, 1 fetch error, 2 note written but data problems (read the top 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp secrets.env.example secrets.env && chmod 600 secrets.env   # add GEMINI_API_KEY
-sudo cp systemd/stockbot-daily.* /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now stockbot-daily.timer
+sudo cp systemd/stockbot-daily.* systemd/stockbot-api.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now stockbot-daily.timer stockbot-api.service
 ```
 
 `scripts/backup.sh` mirrors the project to `/mnt/storage/project_backups/stockbot_backup`

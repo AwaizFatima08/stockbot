@@ -21,6 +21,13 @@ CREATE TABLE IF NOT EXISTS eod (
 );
 CREATE INDEX IF NOT EXISTS eod_symbol_date ON eod(symbol, date);
 
+CREATE TABLE IF NOT EXISTS company (
+    symbol     TEXT NOT NULL,
+    as_of      TEXT NOT NULL,
+    json       TEXT NOT NULL,
+    PRIMARY KEY (symbol, as_of)
+);
+
 CREATE TABLE IF NOT EXISTS fetch_log (
     date       TEXT PRIMARY KEY,
     status     TEXT NOT NULL,   -- 'ok' | 'holiday' | 'error'
@@ -80,6 +87,17 @@ class DB:
 
     def row(self, symbol: str, date_iso: str) -> sqlite3.Row | None:
         return self.conn.execute("SELECT * FROM eod WHERE symbol=? AND date=?", (symbol.upper(), date_iso)).fetchone()
+
+    def save_company(self, symbol: str, as_of: str, payload: dict) -> None:
+        import json
+        with self.conn:
+            self.conn.execute("INSERT OR REPLACE INTO company VALUES (?,?,?)", (symbol.upper(), as_of, json.dumps(payload)))
+
+    def company(self, symbol: str, up_to: str | None = None) -> dict | None:
+        import json
+        q = "SELECT json FROM company WHERE symbol=?" + (" AND as_of<=?" if up_to else "") + " ORDER BY as_of DESC LIMIT 1"
+        r = self.conn.execute(q, (symbol.upper(), up_to) if up_to else (symbol.upper(),)).fetchone()
+        return json.loads(r["json"]) if r else None
 
     def counts(self) -> dict:
         r = self.conn.execute("SELECT COUNT(*) AS rows, COUNT(DISTINCT date) AS days, MIN(date) AS first, MAX(date) AS last FROM eod").fetchone()

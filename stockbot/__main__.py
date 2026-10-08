@@ -7,10 +7,10 @@ import sys
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from stockbot import config, scoring
+from stockbot import config, export, scoring, server
 from stockbot.ai import gemini
 from stockbot.analysis import daily as daily_analysis, setups as su
-from stockbot.fetch import backfill, fetch_day, latest_trading_day
+from stockbot.fetch import backfill, fetch_day, latest_trading_day, update_companies
 from stockbot.reports import charts, daily_note, email as email_report, pdf as pdf_report
 from stockbot.storage.db import DB
 
@@ -45,6 +45,9 @@ def cmd_fetch(args, cfg, db):
     d = args.date or latest_trading_day(datetime.now(ZoneInfo(cfg.timezone)).date())
     status = fetch_day(db, cfg, d, force=args.force)
     print(f"{d}: {status}")
+    if status in ("ok", "cached") and not args.no_company:
+        res = update_companies(db, cfg, d)
+        print("company pages:", ", ".join(f"{k}={v}" for k, v in res.items()))
     return 0 if status in ("ok", "cached", "holiday", "weekend") else 1
 
 
@@ -69,6 +72,7 @@ def cmd_note(args, cfg, db):
         if s.ok and s.close:
             scoring.log_signals(db, analysis.as_of, s.symbol, s.close, s.trend, s.setups)
     pdf_path = pdf_report.write(md.read_text(encoding="utf-8"), cfg.reports_dir / "daily" / f"{analysis.as_of}.pdf", chart_paths)
+    export.build(db, cfg, d, analysis, chart_paths)
     print(f"note: {md}\npdf: {pdf_path}\nsnapshot: {snap}\ncharts: {len(chart_paths)}\nstatus: {'OK' if analysis.data_ok else 'PROBLEMS'}; {ai_status}")
     if not analysis.data_ok:
         for p in analysis.data_problems:
@@ -76,6 +80,24 @@ def cmd_note(args, cfg, db):
     if getattr(args, "email", False):
         print(email_report.send(cfg.email, f"Stock Guru daily note {analysis.as_of}", md.read_text(encoding="utf-8"), [pdf_path]))
     return 0 if analysis.data_ok else 2
+
+
+def cmd_export(args, cfg, db):
+    d = args.date or (date.fromisoformat(db.latest_date()) if db.latest_date() else None)
+    if d is None:
+        print("database empty", file=sys.stderr)
+        return 1
+    charts_dir = cfg.reports_dir / "charts" / d.isoformat()
+    charts = {p.stem: p for p in charts_dir.glob("*.png")} if charts_dir.exists() else {}
+    out = export.build(db, cfg, d, None, charts)
+    print(f"app bundle: {out}")
+    return 0
+
+
+def cmd_serve(args, cfg, db):
+    db.close()
+    server.serve(cfg.root, args.port)
+    return 0
 
 
 def cmd_scorecard(args, cfg, db):
@@ -93,6 +115,8 @@ def cmd_run(args, cfg, db):
     d = latest_trading_day(datetime.now(ZoneInfo(cfg.timezone)).date())
     status = fetch_day(db, cfg, d)
     print(f"fetch {d}: {status}")
+    if status in ("ok", "cached"):
+        update_companies(db, cfg, d)
     if status == "holiday":
         print("no trading file for today (holiday or not yet published); no note written")
         return 0
@@ -125,6 +149,7 @@ def main(argv=None) -> int:
     s = sub.add_parser("fetch", help="download one trading day (default: latest weekday)")
     s.add_argument("--date", type=_date)
     s.add_argument("--force", action="store_true")
+    s.add_argument("--no-company", action="store_true", help="skip the company pages")
     s.set_defaults(fn=cmd_fetch)
 
     s = sub.add_parser("backfill", help="download a date range")
@@ -137,6 +162,14 @@ def main(argv=None) -> int:
     s.add_argument("--no-ai", action="store_true")
     s.add_argument("--email", action="store_true", help="also email the PDF if [email] is enabled")
     s.set_defaults(fn=cmd_note)
+
+    s = sub.add_parser("export", help="write the app bundle (data/app) for the latest date")
+    s.add_argument("--date", type=_date)
+    s.set_defaults(fn=cmd_export)
+
+    s = sub.add_parser("serve", help="run the phone-app API server")
+    s.add_argument("--port", type=int, default=8787)
+    s.set_defaults(fn=cmd_serve)
 
     s = sub.add_parser("scorecard", help="how past readings fared (self-scoring log)")
     s.add_argument("--date", type=_date)
