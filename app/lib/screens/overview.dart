@@ -62,7 +62,9 @@ class _StockCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ch = (s['change_pct'] as num?)?.toDouble();
     final color = ch == null ? Colors.grey : ch > 0 ? Colors.green : ch < 0 ? Colors.red : Colors.grey;
-    final tags = <String>[...(s['setups'] as List? ?? []).cast<String>(), ...(s['patterns'] as List? ?? []).cast<String>()];
+    final setups = (s['setups'] as List? ?? []).cast<String>();
+    final patterns = (s['patterns'] as List? ?? []).cast<String>().where((p) => !setups.any((x) => x.toLowerCase().startsWith(p.toLowerCase()))).toList();
+    final tags = <String>[...setups, ...patterns];
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       child: InkWell(

@@ -35,9 +35,15 @@ class _HomeShellState extends State<HomeShell> {
   int _tab = 0;
   @override
   Widget build(BuildContext context) {
-    final pages = [const OverviewScreen(), const ScorecardScreen(), const WatchlistScreen(), const SettingsScreen()];
+    // Build only the selected tab so every visit re-fetches (settings changes take effect at once).
+    final page = switch (_tab) {
+      0 => const OverviewScreen(),
+      1 => const ScorecardScreen(),
+      2 => const WatchlistScreen(),
+      _ => const SettingsScreen(),
+    };
     return Scaffold(
-      body: IndexedStack(index: _tab, children: pages),
+      body: page,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),

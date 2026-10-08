@@ -126,7 +126,7 @@ class _ChartTabState extends State<_ChartTab> {
         ),
       ),
       Padding(padding: const EdgeInsets.all(8), child: CandleChart(rows: rows, count: _count)),
-      Section(title: 'Trend reading', child: Row(children: [TrendChip(s['trend'] ?? 'unknown'), const SizedBox(width: 8), Expanded(child: Text((s['sentences'] as List?)?.cast<String>().firstWhere((t) => t.contains('average'), orElse: () => '') ?? ''))])),
+      Section(title: 'Trend reading', child: Row(children: [TrendChip(s['trend'] ?? 'unknown'), const SizedBox(width: 8), Expanded(child: Text((s['sentences'] as List?)?.cast<String>().firstWhere((t) => t.contains('moving averages') || t.contains('trend'), orElse: () => '') ?? ''))])),
       Section(
         title: 'Candlestick patterns on the last session',
         child: patterns.isEmpty ? const Text('No pattern detected on the last candle.') : Bullets(patterns.map((p) => '${p['label']}: ${p['text']}').toList()),
@@ -243,7 +243,7 @@ class _CorporateTab extends StatelessWidget {
         title: c['company_name'] ?? '',
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(c['sector'] ?? '', style: Theme.of(context).textTheme.bodySmall),
-          if ((c['business'] ?? '').toString().isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(c['business'], style: const TextStyle(fontSize: 13))),
+          if ((c['business'] ?? '').toString().isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text('${c['business']}${(c['business'] as String).length >= 600 ? ' ...' : ''}', style: const TextStyle(fontSize: 13))),
         ]),
       ),
       Section(
@@ -360,6 +360,15 @@ class _OutlookTab extends StatelessWidget {
   }
 }
 
+/// A table row padded or cut to exactly [n] value cells so every row matches the header.
+TableRow _row(String label, List values, int n, int decimals, double size) {
+  final cells = List<dynamic>.generate(n, (i) => i < values.length ? values[i] : null);
+  return TableRow(children: [
+    Text(label, style: TextStyle(fontSize: size)),
+    for (final v in cells) Text(fmtNum(v, d: decimals), textAlign: TextAlign.right, style: TextStyle(fontSize: size)),
+  ]);
+}
+
 class _LongTermTab extends StatelessWidget {
   final Map<String, dynamic> d;
   const _LongTermTab(this.d);
@@ -400,17 +409,17 @@ class _LongTermTab extends StatelessWidget {
               MapEntry('Profitable years', '${f['profitable_years'] ?? '-'} of ${eps.length}'),
             ]),
             const SizedBox(height: 10),
-            Table(
-              border: TableBorder(horizontalInside: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
-              children: [
-                TableRow(children: [const Text(''), for (final y in years) Text(y, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w700))]),
-                TableRow(children: [const Text('EPS'), for (final v in eps) Text(fmtNum(v), textAlign: TextAlign.right)]),
-                TableRow(children: [const Text('Profit'), for (final v in pat) Text(fmtNum(v, d: 0), textAlign: TextAlign.right, style: const TextStyle(fontSize: 11))]),
-                TableRow(children: [const Text('Sales'), for (final v in sales) Text(fmtNum(v, d: 0), textAlign: TextAlign.right, style: const TextStyle(fontSize: 11))]),
-                for (final e in ratios.entries.where((e) => e.key != 'years'))
-                  TableRow(children: [Text(e.key, style: const TextStyle(fontSize: 11)), for (final v in (e.value as List)) Text(fmtNum(v), textAlign: TextAlign.right, style: const TextStyle(fontSize: 11))]),
-              ],
-            ),
+            if (years.isNotEmpty)
+              Table(
+                border: TableBorder(horizontalInside: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+                children: [
+                  TableRow(children: [const Text(''), for (final y in years) Text(y, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w700))]),
+                  _row('EPS', eps, years.length, 2, 13),
+                  _row('Profit', pat, years.length, 0, 11),
+                  _row('Sales', sales, years.length, 0, 11),
+                  for (final e in ratios.entries.where((e) => e.key != 'years' && e.value is List)) _row(e.key, e.value as List, years.length, 2, 11),
+                ],
+              ),
           ]),
         )
       else

@@ -67,9 +67,16 @@ def fundamentals_view(company: dict | None, close: float | None) -> dict:
         return {"available": False}
     ann = company.get("annual") or {}
     years = ann.get("years") or []
-    eps = ann.get("EPS") or []
-    pat = ann.get("Profit after Taxation") or []
-    sales = ann.get("Sales") or []
+
+    def _pick(*patterns):
+        import re
+        for k, v in ann.items():
+            if k != "years" and any(re.search(p, k, re.I) for p in patterns):
+                return v or []
+        return []
+    eps = _pick(r"^EPS")
+    pat = _pick(r"profit.*after", r"net profit", r"profit\s*/?\s*\(loss\)")
+    sales = _pick(r"^sales", r"revenue", r"turnover")
     out = {
         "available": True,
         "fiscal_year_end": company.get("fiscal_year_end"),
