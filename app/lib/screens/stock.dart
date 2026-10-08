@@ -67,7 +67,7 @@ class _TodayTab extends StatelessWidget {
     return ListView(children: [
       Section(
         title: 'Close ${fmtNum(s['close'])}  (${fmtPct(s['change_pct'])})  ·  ${d['as_of']}',
-        child: Row(children: [TrendChip(s['trend'] ?? 'unknown'), const SizedBox(width: 8), Text('RSI14 ${fmtNum(s['rsi'], d: 0)}  ·  Volume ${fmtNum(s['volume_ratio'], d: 1)}x 20-day avg')]),
+        child: Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [TrendChip(s['trend'] ?? 'unknown'), Text('RSI14 ${fmtNum(s['rsi'], d: 0)}'), Text('Volume ${fmtNum(s['volume_ratio'], d: 1)}x 20-day avg')]),
       ),
       Section(
         title: 'Key numbers',
