@@ -119,6 +119,12 @@ def cmd_allow_user(args, cfg, db):
     return 0
 
 
+def cmd_deny_user(args, cfg, db):
+    cloud.deny_user(cfg.root, args.email)
+    print("allowed:", [u["email"] for u in cloud.list_users(cfg.root)])
+    return 0
+
+
 def cmd_cloud_poll(args, cfg, db):
     """Apply a pending watchlist request from the app (runs from a 5-minute timer)."""
     req = cloud.pending_request(cfg.root)
@@ -223,6 +229,10 @@ def main(argv=None) -> int:
     s.add_argument("email")
     s.add_argument("--role", default="user")
     s.set_defaults(fn=cmd_allow_user)
+
+    s = sub.add_parser("deny-user", help="remove a Google account from the app allow-list")
+    s.add_argument("email")
+    s.set_defaults(fn=cmd_deny_user)
 
     s = sub.add_parser("cloud-poll", help="apply a pending watchlist request from the cloud")
     s.set_defaults(fn=cmd_cloud_poll)

@@ -93,6 +93,11 @@ def allow_user(root: Path, email: str, role: str = "user") -> None:
         {"added_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "role": role})
 
 
+def deny_user(root: Path, email: str) -> None:
+    db = _client(root)
+    db.collection("allowed_users").document(email.strip().lower()).delete()
+
+
 def list_users(root: Path) -> list[dict]:
     db = _client(root)
     return [{"email": d.id, **d.to_dict()} for d in db.collection("allowed_users").stream()]
