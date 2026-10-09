@@ -1,7 +1,7 @@
 name: stock_guru
 description: Stock Guru - personal PSX research companion (analysis only, never advice).
 publish_to: 'none'
-version: 0.2.3+5
+version: 0.3.0+6
 
 environment:
   sdk: ^3.6.0
@@ -12,6 +12,10 @@ dependencies:
   http: ^1.2.2
   shared_preferences: ^2.3.3
   url_launcher: ^6.3.1
+  firebase_core: ^4.0.0
+  firebase_auth: ^6.0.0
+  cloud_firestore: ^6.0.0
+  google_sign_in: ^7.0.0
 
 dev_dependencies:
   flutter_test:

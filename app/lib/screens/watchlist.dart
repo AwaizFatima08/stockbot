@@ -74,7 +74,9 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
           final st = await Api.instance.status();
           if (st['busy'] != true) {
             t.cancel();
-            if (mounted) setState(() => _status = 'Regeneration finished. Pull to refresh on the Today tab.');
+            final job = st['last_job'];
+            final msg = (job is Map && job['status'] != null) ? 'Request ${job['status']}: ${job['message'] ?? ''}' : 'Regeneration finished.';
+            if (mounted) setState(() => _status = '$msg Pull to refresh on the Today tab.');
           }
         } catch (_) {}
       });

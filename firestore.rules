@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // A signed-in Google account whose email is listed in allowed_users may read the bundle.
+    function allowed() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/allowed_users/$(request.auth.token.email.lower()));
+    }
+    match /app/{doc}      { allow read: if allowed(); allow write: if false; }
+    match /stocks/{doc}   { allow read: if allowed(); allow write: if false; }
+    match /history/{doc}  { allow read: if allowed(); allow write: if false; }
+    match /allowed_users/{email} {
+      // a user may check their own entry; only the engine (admin SDK) writes
+      allow read: if request.auth != null && request.auth.token.email.lower() == email;
+      allow write: if false;
+    }
+    match /requests/watchlist {
+      allow read: if allowed();
+      // an allowed user may file a watchlist request: exactly 10 symbols, status pending
+      allow create, update: if allowed()
+        && request.resource.data.symbols is list
+        && request.resource.data.symbols.size() == 10
+        && request.resource.data.status == 'pending'
+        && request.resource.data.requested_by == request.auth.token.email.lower();
+      allow delete: if false;
+    }
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

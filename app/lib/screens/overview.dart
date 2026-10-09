@@ -42,7 +42,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                 ListTile(
                   leading: Icon(s['data_ok'] == true ? Icons.check_circle : Icons.warning, color: s['data_ok'] == true ? Colors.green : Colors.orange),
                   title: Text('Daily performance - ${s['as_of']}'),
-                  subtitle: Text(s['data_ok'] == true ? 'PSX end-of-day data OK' : 'Data problems: ${problems.join('; ')}'),
+                  subtitle: Text((s['data_ok'] == true ? 'PSX end-of-day data OK' : 'Data problems: ${problems.join('; ')}') + (Api.instance.lastRoute.isEmpty ? '' : '  \u00b7  via ${Api.instance.lastRoute}')),
                 ),
                 for (final st in stocks) _StockCard(st),
                 const Padding(padding: EdgeInsets.all(16), child: Text(kDisclaimer, style: TextStyle(fontSize: 11))),

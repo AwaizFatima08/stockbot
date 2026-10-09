@@ -1,0 +1,10 @@
+[Unit]
+Description=Stock Guru: apply watchlist requests from the phone app (cloud)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=humayun
+WorkingDirectory=/mnt/storage/projects/stockbot
+EnvironmentFile=/mnt/storage/projects/stockbot/secrets.env
+ExecStart=/mnt/storage/projects/stockbot/.venv/bin/python -m stockbot cloud-poll

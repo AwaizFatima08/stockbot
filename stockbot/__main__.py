@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from stockbot import config, export, scoring, server
+from stockbot.cloud import firebase as cloud
 from stockbot.ai import gemini
 from stockbot.analysis import daily as daily_analysis, setups as su
 from stockbot.fetch import backfill, fetch_day, latest_trading_day, update_companies, update_payouts
@@ -74,6 +75,12 @@ def cmd_note(args, cfg, db):
             scoring.log_signals(db, analysis.as_of, s.symbol, s.close, s.trend, s.setups)
     pdf_path = pdf_report.write(md.read_text(encoding="utf-8"), cfg.reports_dir / "daily" / f"{analysis.as_of}.pdf", chart_paths)
     export.build(db, cfg, d, analysis, chart_paths)
+    try:
+        print("cloud:", cloud.publish(cfg.root, cfg.data_dir / "app"))
+    except cloud.CloudDisabled as e:
+        print(f"cloud: {e}")
+    except Exception as e:  # noqa: BLE001 - cloud is an extra, never block the note
+        print(f"cloud publish failed: {type(e).__name__}: {e}")
     print(f"note: {md}\npdf: {pdf_path}\nsnapshot: {snap}\ncharts: {len(chart_paths)}\nstatus: {'OK' if analysis.data_ok else 'PROBLEMS'}; {ai_status}")
     if not analysis.data_ok:
         for p in analysis.data_problems:
@@ -98,6 +105,42 @@ def cmd_export(args, cfg, db):
 def cmd_serve(args, cfg, db):
     db.close()
     server.serve(cfg.root, args.port)
+    return 0
+
+
+def cmd_publish(args, cfg, db):
+    print(cloud.publish(cfg.root, cfg.data_dir / "app"))
+    return 0
+
+
+def cmd_allow_user(args, cfg, db):
+    cloud.allow_user(cfg.root, args.email, args.role)
+    print("allowed:", [u["email"] for u in cloud.list_users(cfg.root)])
+    return 0
+
+
+def cmd_cloud_poll(args, cfg, db):
+    """Apply a pending watchlist request from the app (runs from a 5-minute timer)."""
+    req = cloud.pending_request(cfg.root)
+    if not req:
+        print("no pending request")
+        return 0
+    syms = [str(s).strip().upper() for s in req.get("symbols", [])]
+    symfile = cfg.data_dir / "app" / "symbols.json"
+    known = {s["symbol"]: s for s in __import__("json").loads(symfile.read_text())["symbols"]} if symfile.exists() else {}
+    bad = [s for s in syms if s not in known]
+    if len(syms) != 10 or len(set(syms)) != 10 or bad:
+        cloud.set_request_status(cfg.root, "rejected", f"need 10 distinct listed symbols; unknown: {bad}")
+        print("rejected:", bad)
+        return 0
+    cloud.set_request_status(cfg.root, "working", "regenerating on the NAS")
+    server._write_watchlist(cfg.root, syms, {s: known[s]["name"] for s in syms}, {s: known[s].get("sector_code", "") for s in syms})
+    cfg2 = config.load(cfg.root)
+    d = date.fromisoformat(db.latest_date())
+    args.date, args.no_ai, args.email = d, True, False
+    rc = cmd_note(args, cfg2, db)   # regenerates note, bundle and publishes to the cloud
+    cloud.set_request_status(cfg.root, "done" if rc in (0, 2) else "failed", f"watchlist applied by {req.get('requested_by')}")
+    print("applied:", syms)
     return 0
 
 
@@ -172,6 +215,17 @@ def main(argv=None) -> int:
     s = sub.add_parser("serve", help="run the phone-app API server")
     s.add_argument("--port", type=int, default=8787)
     s.set_defaults(fn=cmd_serve)
+
+    s = sub.add_parser("publish", help="upload the app bundle to Firestore (cloud carrier)")
+    s.set_defaults(fn=cmd_publish)
+
+    s = sub.add_parser("allow-user", help="allow a Google account (email) to use the app via the cloud")
+    s.add_argument("email")
+    s.add_argument("--role", default="user")
+    s.set_defaults(fn=cmd_allow_user)
+
+    s = sub.add_parser("cloud-poll", help="apply a pending watchlist request from the cloud")
+    s.set_defaults(fn=cmd_cloud_poll)
 
     s = sub.add_parser("scorecard", help="how past readings fared (self-scoring log)")
     s.add_argument("--date", type=_date)

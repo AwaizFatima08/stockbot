@@ -8,3 +8,4 @@ secrets.env
 *.egg-info/
 config/holdings.toml
 dist/
+secrets/

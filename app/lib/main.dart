@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api.dart';
+import 'cloud.dart';
 import 'screens/overview.dart';
 import 'screens/scorecard.dart';
 import 'screens/settings.dart';
@@ -8,6 +9,7 @@ import 'screens/watchlist.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Api.instance.load();
+  await Cloud.instance.init();
   runApp(const StockGuruApp());
 }
 
