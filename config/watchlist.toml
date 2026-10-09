@@ -1,53 +1,51 @@
-# Homi's 10-stock trial watchlist (provided 8 Oct 2026). Used for the ~3-month
-# parallel run (design doc 4.5). FATIMA is included at Homi's request; the design
-# doc (section 7) notes the employer insider-trading policy should be checked.
+# Watchlist managed from the Stock Guru app. Edit here or in the app.
 
 [[stocks]]
 symbol = "OCTOPUS"
 name = "Octopus Digital"
-sector = "Technology"
+sector = "0828"
 
 [[stocks]]
 symbol = "AVN"
-name = "Avanceon"
-sector = "Technology / automation"
+name = "Avanceon Ltd"
+sector = "0828"
 
 [[stocks]]
 symbol = "TREET"
-name = "Treet Corporation"
-sector = "Consumer goods"
+name = "Treet Corp"
+sector = "0810"
 
 [[stocks]]
 symbol = "FCL"
-name = "Fast Cables"
-sector = "Cables / electrical goods"
+name = "Fast Cables Ltd."
+sector = "0803"
 
 [[stocks]]
 symbol = "WAVESAPP"
-name = "Waves Home Appliances"
-sector = "Home appliances"
+name = "Waves Home App"
+sector = "0803"
 
 [[stocks]]
 symbol = "WAVES"
-name = "Waves Corporation"
-sector = "Home appliances / holding"
+name = "Waves Corp Ltd."
+sector = "0803"
 
 [[stocks]]
 symbol = "FATIMA"
-name = "Fatima Fertilizer"
-sector = "Fertilizer"
+name = "Fatima Fert"
+sector = "0809"
 
 [[stocks]]
 symbol = "FFC"
-name = "Fauji Fertilizer"
-sector = "Fertilizer"
+name = "Fauji Fert"
+sector = "0809"
 
 [[stocks]]
 symbol = "CNERGY"
 name = "Cnergyico PK"
-sector = "Refinery"
+sector = "0825"
 
 [[stocks]]
 symbol = "HUBC"
-name = "Hub Power"
-sector = "Power"
+name = "Hub Power Co."
+sector = "0824"
