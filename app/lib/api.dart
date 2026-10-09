@@ -72,6 +72,9 @@ class Api {
       throw ApiException(0, e.message);
     } catch (e) {
       final s = '$e';
+      if (s.contains('unavailable') || s.contains('offline')) {
+        throw ApiException(0, 'No internet connection, and the NAS is not reachable on this network.');
+      }
       if (s.contains('permission-denied')) {
         throw ApiException(403, 'Your Google account (${Cloud.instance.email}) is not on the allow-list yet. Ask Homi to add it.');
       }
